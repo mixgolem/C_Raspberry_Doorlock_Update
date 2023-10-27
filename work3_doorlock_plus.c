@@ -7,9 +7,7 @@
 #include <stdlib.h>
 #include <lcd.h>
 
-#define PW_LEN 4
-#define FAIL_CNT 3
-
+// 키패드 버튼 정의
 #define B1 1
 #define B2 2
 #define B3 4
@@ -23,6 +21,7 @@
 #define B0 1024
 #define BH 2048
 
+// 키패드 핀 정의
 #define KEYPAD_PB1 23
 #define KEYPAD_PB2 24
 #define KEYPAD_PB3 25
@@ -37,6 +36,7 @@
 #define KEYPAD_PB15 26
 #define MAX_KEY_BT_NUM 12
 
+// 서보 모터 및 부저 핀 정의
 #define SERVO 18
 #define BUZZER_PIN 17
 #define DO_L 523
@@ -48,7 +48,9 @@
 #define SI 987
 #define DO_H 1046
 
-
+// 비밀번호 길이 및 실패 횟수 정의
+#define PW_LEN 4
+#define FAIL_CNT 3
 
 const int KeypadTable[MAX_KEY_BT_NUM] = {
     KEYPAD_PB1, KEYPAD_PB2, KEYPAD_PB3, KEYPAD_PB5, KEYPAD_PB6, KEYPAD_PB7,
@@ -102,245 +104,280 @@ unsigned int SevenScale(unsigned char scale) {
     return _ret;
 }
 
+// 부저 주파수 변경 함수
 void Change_FREQ(unsigned int freq) {
     softToneWrite(BUZZER_PIN, freq);
 }
 
+// 부저 정지 함수
 void STOP_FREQ(void) {
     softToneWrite(BUZZER_PIN, 0);
 }
 
+// 부저 초기화 함수
 void Buzzer_Init(void) {
     softToneCreate(BUZZER_PIN);
     STOP_FREQ();
 }
 
+// 문 열기 함수
 void door_open(int mute) {
     printf("Door Open\n");
     softPwmWrite(SERVO, 25);
-    if(!mute){
-		for (int i = 0; i < 3; i++) {
-			Change_FREQ(SevenScale(i));
-			delay(200);
-			STOP_FREQ();
-		}
-		
-	}
-	delay(2000);
-	softPwmWrite(SERVO, 5);
-	if(!mute){
-		for (int i = 2; i >= 0; i--) {
-			Change_FREQ(SevenScale(i));
-			delay(200);
-			STOP_FREQ();
-		}
-	}
+
+    if (!mute) {
+        for (int i = 0; i < 3; i++) {
+            Change_FREQ(SevenScale(i));
+            delay(200);
+            STOP_FREQ();
+        }
+    }
+
+    delay(2000);
+    softPwmWrite(SERVO, 5);
+
+    if (!mute) {
+        for (int i = 2; i >= 0; i--) {
+            Change_FREQ(SevenScale(i));
+            delay(200);
+            STOP_FREQ();
+        }
+    }
 }
 
+// 비밀번호 실패 시 소리와 메시지 출력 함수
 void pw_fail(int fail, int mute) {
-    // 비밀번호가 틀렸을 경우 소리와 함께 화면에 메세지 출력
     printf("\nIncorrect Password\n ");
-    if(!mute){
-		for (int i = 0; i < fail; i++) {
-			Change_FREQ(SevenScale(7));
-			delay(200);
-			STOP_FREQ();
-			delay(200);
-		}
-	}
-    
-    if (fail >= FAIL_CNT) { // 실패 카운트만큼 틀린 경우 10초 대기
+
+    if (!mute) {
+        for (int i = 0; i < fail; i++) {
+            Change_FREQ(SevenScale(7));
+            delay(200);
+            STOP_FREQ();
+            delay(200);
+        }
+    }
+
+    if (fail >= FAIL_CNT) {
         printf("\n(Input is limited for 10 seconds)\n");
         delay(10000);
     }
 }
 
+// 배열 출력 함수
 void printint(int *arr) {
     printf("\npw print\n");
+
     for (int i = 0; i < PW_LEN; i++) {
         printf("\n%d\n ", arr[i]);
     }
 }
 
+// 비밀번호 비교 함수
 int pwcmp(int *a, int *b) {
-    if(a[0]==b[0]&&a[1]==b[1]&&a[2]==b[2]&&a[3]==b[3]) return 1;
-    else return 0;
+    if (a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3])
+        return 1;
+    else
+        return 0;
 }
 
-void startlcd(int disp1, int lcd_stat){	
-	if(lcd_stat%4==0){
-		lcdClear(disp1);
-		lcdPosition(disp1, 0, 0);
-		lcdPuts(disp1, "(1)Input PW");
-	
-		lcdPosition(disp1, 0, 1);
-		lcdPuts(disp1, "(2)Set PW");
-		
-		lcdPosition(disp1, 15, 0);
-		lcdPuts(disp1, "|");
-		
-		lcdPosition(disp1, 15, 1);
-		lcdPuts(disp1, "V");
-		
-		delay(100);
-	}else if(lcd_stat%4==1) {
-		lcdPosition(disp1, 0, 0);
-		lcdPuts(disp1, "(2)Set PW");
-	
-		lcdPosition(disp1, 0, 1);
-		lcdPuts(disp1, "(3)Change PW");
-		lcdPosition(disp1, 15, 0);
-		lcdPuts(disp1, "|");
-		
-		lcdPosition(disp1, 15, 1);
-		lcdPuts(disp1, "V");
-		
-		delay(100);
-		
-	}
-	else if(lcd_stat%4==2){
-		lcdPosition(disp1, 0, 0);
-		lcdPuts(disp1, "(3)Change PW");
-	
-		lcdPosition(disp1, 0, 1);
-		lcdPuts(disp1, "(4)Sound On/Off");
-		lcdPosition(disp1, 15, 0);
-		lcdPuts(disp1, "|");
-		
-		lcdPosition(disp1, 15, 1);
-		lcdPuts(disp1, "V");
-		delay(100);
-	}
-	else if(lcd_stat%4==3){
-		lcdPosition(disp1, 0, 0);
-		lcdPuts(disp1, "(4)Sound On/Off");
-	
-		lcdPosition(disp1, 0, 1);
-		lcdPuts(disp1, "(1)Input PW");
-		lcdPosition(disp1, 15, 0);
-		lcdPuts(disp1, "|");
-		
-		lcdPosition(disp1, 15, 1);
-		lcdPuts(disp1, "V");
-		delay(100);	
-	}
+// LCD 시작 화면 출력 함수
+void startlcd(int disp1, int lcd_stat) {
+    if (lcd_stat % 4 == 0) {
+        lcdClear(disp1);
+        lcdPosition(disp1, 0, 0);
+        lcdPuts(disp1, "(1)Input PW");
+
+        lcdPosition(disp1, 0, 1);
+        lcdPuts(disp1, "(2)Set PW");
+
+        lcdPosition(disp1, 15, 0);
+        lcdPuts(disp1, "|");
+
+        lcdPosition(disp1, 15, 1);
+        lcdPuts(disp1, "V");
+
+        delay(100);
+    } else if (lcd_stat % 4 == 1) {
+        lcdPosition(disp1, 0, 0);
+        lcdPuts(disp1, "(2)Set PW");
+
+        lcdPosition(disp1, 0, 1);
+        lcdPuts(disp1, "(3)Change PW");
+        lcdPosition(disp1, 15, 0);
+        lcdPuts(disp1, "|");
+
+        lcdPosition(disp1, 15, 1);
+        lcdPuts(disp1, "V");
+
+        delay(100);
+
+    } else if (lcd_stat % 4 == 2) {
+        lcdPosition(disp1, 0, 0);
+        lcdPuts(disp1, "(3)Change PW");
+
+        lcdPosition(disp1, 0, 1);
+        lcdPuts(disp1, "(4)Sound On/Off");
+        lcdPosition(disp1, 15, 0);
+        lcdPuts(disp1, "|");
+
+        lcdPosition(disp1, 15, 1);
+        lcdPuts(disp1, "V");
+        delay(100);
+    } else if (lcd_stat % 4 == 3) {
+        lcdPosition(disp1, 0, 0);
+        lcdPuts(disp1, "(4)Sound On/Off");
+
+        lcdPosition(disp1, 0, 1);
+        lcdPuts(disp1, "(1)Input PW");
+        lcdPosition(disp1, 15, 0);
+        lcdPuts(disp1, "|");
+
+        lcdPosition(disp1, 15, 1);
+        lcdPuts(disp1, "V");
+        delay(100);
+    }
 }
 
-void btnsound(int mute){
-	if(mute){
-		delay(200);
-		return;
-	}
-	else{
-	Change_FREQ(SevenScale(2));
-    delay(200);
-    STOP_FREQ();
-	}
+// 버튼 소리 출력 함수
+void btnsound(int mute) {
+    if (mute) {
+        delay(200);
+        return;
+    } else {
+        Change_FREQ(SevenScale(2));
+        delay(200);
+        STOP_FREQ();
+    }
 }
 
-void lcd_inputpw(int disp1, int t){
-	lcdClear(disp1);
-	lcdPosition(disp1, 0,0);
-	lcdPuts(disp1, "1.Input PW");
-	for(int i=0;i<t;i++){
-		lcdPosition(disp1, i, 1);
-		lcdPuts(disp1, "*");
-	}
-	delay(100);
+// LCD 비밀번호 입력 화면 출력 함수
+void lcd_inputpw(int disp1, int t) {
+    lcdClear(disp1);
+    lcdPosition(disp1, 0, 0);
+    lcdPuts(disp1, "1.Input PW");
+
+    for (int i = 0; i < t; i++) {
+        lcdPosition(disp1, i, 1);
+        lcdPuts(disp1, "*");
+    }
+
+    delay(100);
 }
 
-void lcd_dooropen(int disp1){
-	lcdClear(disp1);
-	lcdPosition(disp1, 0,0);
-	lcdPuts(disp1, "Door opened");
-	delay(100);
+// LCD 문 열림 화면 출력 함수
+void lcd_dooropen(int disp1) {
+    lcdClear(disp1);
+    lcdPosition(disp1, 0, 0);
+    lcdPuts(disp1, "Door opened");
+    delay(100);
 }
 
-void lcd_fail(int disp1, int fail){
-	if(fail>=FAIL_CNT){
-		lcdClear(disp1);
-		lcdPosition(disp1, 0,0);
-		lcdPuts(disp1, "no more!");
-		lcdPosition(disp1, 0,1);
-		lcdPuts(disp1, "Retry after10sec");
-		delay(100);
-	}
-	else {
-		lcdClear(disp1);
-		lcdPosition(disp1, 0,0);
-		lcdPuts(disp1, "Invalid password");
-		delay(200);	
-	}
+// LCD 비밀번호 실패 화면 출력 함수
+void lcd_fail(int disp1, int fail) {
+    if (fail >= FAIL_CNT) {
+        lcdClear(disp1);
+        lcdPosition(disp1, 0, 0);
+        lcdPuts(disp1, "no more!");
+        lcdPosition(disp1, 0, 1);
+        lcdPuts(disp1, "Retry after 10sec");
+        delay(100);
+    } else {
+        lcdClear(disp1);
+        lcdPosition(disp1, 0, 0);
+        lcdPuts(disp1, "Invalid password");
+        delay(200);
+    }
 }
 
-void lcd_setpw(int disp1, int t){
-	lcdClear(disp1);
-	lcdPosition(disp1, 0,0);
-	lcdPuts(disp1, "2.Set PW");
-	for(int i=0;i<t;i++){
-		lcdPosition(disp1, i, 1);
-		lcdPuts(disp1, "*");
-	}
-	delay(100);	
+// LCD 비밀번호 설정 화면 출력 함수
+void lcd_setpw(int disp1, int t) {
+    lcdClear(disp1);
+    lcdPosition(disp1, 0, 0);
+    lcdPuts(disp1, "2.Set PW");
+
+    for (int i = 0; i < t; i++) {
+        lcdPosition(disp1, i, 1);
+        lcdPuts(disp1, "*");
+    }
+
+    delay(100);
 }
 
-void lcd_changepw(int disp1, int t, int j){
-	lcdClear(disp1);
-	lcdPosition(disp1, 0,0);
-	lcdPuts(disp1, "3.Change PW");
-	lcdPosition(disp1, 0,1);
-	lcdPuts(disp1, "As is:");
-	for(int i=0;i<t;i++){
-		lcdPosition(disp1, i+6, 1);
-		lcdPuts(disp1, "*");
-	}
-	delay(100);
-}
-void lcd_tobe(int disp1, int t, int j){
-	lcdClear(disp1);
-	lcdPosition(disp1, 0,0);
-	lcdPuts(disp1, "As is:");
-	for(int i=0;i<t;i++){
-		lcdPosition(disp1, i+6, 0);
-		lcdPuts(disp1, "*");
-	}
-	lcdPosition(disp1, 0, 1);
-	lcdPuts(disp1, "To be:");
-	for(int i=0;i<j;i++){
-		lcdPosition(disp1, i+6, 1);
-		lcdPuts(disp1, "*");
-	}
-	delay(100);
+// LCD 비밀번호 변경 화면 출력 함수
+void lcd_changepw(int disp1, int t, int j) {
+    lcdClear(disp1);
+    lcdPosition(disp1, 0, 0);
+    lcdPuts(disp1, "3.Change PW");
+    lcdPosition(disp1, 0, 1);
+    lcdPuts(disp1, "As is:");
+
+    for (int i = 0; i < t; i++) {
+        lcdPosition(disp1, i + 6, 1);
+        lcdPuts(disp1, "*");
+    }
+
+    delay(100);
 }
 
-void lcd_sound(int disp1, int mute){
-	lcdClear(disp1);
-	lcdPosition(disp1, 0, 0);
-	if(!mute){
-		lcdPuts(disp1, "Sound off");
-	}
-	else lcdPuts(disp1, "Sound on");
-	delay(2000);
+// LCD 변경할 비밀번호 화면 출력 함수
+void lcd_tobe(int disp1, int t, int j) {
+    lcdClear(disp1);
+    lcdPosition(disp1, 0, 0);
+    lcdPuts(disp1, "As is:");
+
+    for (int i = 0; i < t; i++) {
+        lcdPosition(disp1, i + 6, 0);
+        lcdPuts(disp1, "*");
+    }
+
+    lcdPosition(disp1, 0, 1);
+    lcdPuts(disp1, "To be:");
+
+    for (int i = 0; i < j; i++) {
+        lcdPosition(disp1, i + 6, 1);
+        lcdPuts(disp1, "*");
+    }
+
+    delay(100);
 }
 
-void lcd_done(int disp1){
-	lcdClear(disp1);
-	lcdPosition(disp1, 0, 0);
-	lcdPuts(disp1, "Done");
-	delay(2000);
+// LCD 소리 설정 화면 출력 함수
+void lcd_sound(int disp1, int mute) {
+    lcdClear(disp1);
+    lcdPosition(disp1, 0, 0);
+
+    if (!mute) {
+        lcdPuts(disp1, "Sound off");
+    } else {
+        lcdPuts(disp1, "Sound on");
+    }
+
+    delay(2000);
+}
+
+// LCD 완료 화면 출력 함수
+void lcd_done(int disp1) {
+    lcdClear(disp1);
+    lcdPosition(disp1, 0, 0);
+    lcdPuts(disp1, "Done");
+    delay(2000);
 }
 
 int main() {
     if (wiringPiSetupGpio() == -1)
         return 1;
-        
+    
+    // LCD 초기화
     int disp1;
     disp1 = lcdInit(2, 16, 4, 2, 4, 10, 9, 27, 22, 0, 0, 0, 0);
-	lcdClear(disp1);    
+    lcdClear(disp1);    
     
+    // 서보 모터 및 부저 초기화
     softPwmCreate(SERVO, 0, 200);
     Buzzer_Init();
 
+    // 변수 및 배열 초기화
     int past_key = 0;
     int past_num_1 = 0;
     int past_num_2 = 0;
@@ -348,11 +385,11 @@ int main() {
     int past_num_4 = 0;
     int *pw = calloc(PW_LEN, sizeof(int));
     int *buf = calloc(PW_LEN, sizeof(int));
-	int tok = 0; //3번 비밀번호 변경 항목에 대한 카운트
+    int tok = 0; // 3번 비밀번호 변경 항목에 대한 카운트
     int t = 0;  // 입력에 대한 카운트
     int fail = 0; // 비밀번호 오답에 대한 카운트
-    int lcd_stat = 0; //lcd의 스크롤 정보
-    int mute = 0; //소리 정보
+    int lcd_stat = 0; // LCD의 스크롤 정보
+    int mute = 0; // 소리 정보
     pw[0] = B0;
     pw[1] = B0;
     pw[2] = B0;
@@ -364,155 +401,149 @@ int main() {
     }
 
     printint(pw);
+    
+    // 메인 루프
     while (1) {
         startlcd(disp1, lcd_stat);
         int key = KeypadRead(); // 키를 계속 인식
-        tok=0;
-        if (key != 0 && past_key == 0) { // 키가 눌렸다 떼지는 순간 동작
-            if(key!=B4) btnsound(mute);
-            if(key==BS){//별버튼은 아래로 스크롤
-				lcd_stat++;
-			}
-			if(key==B1)//1번 메뉴는 PW입력모드
-			{
-				t=0;
-				printf("\n(1)Input PW:\n");
-				while(1){
-					lcd_inputpw(disp1, t);
-					int num_1 = KeypadRead();
-					if(past_num_1==0&&num_1!=0&&num_1 != BS && t < PW_LEN){
-			            btnsound(mute);
-						buf[t] = num_1;
-						printf("\nt:%d key:(%d) b:[%d]\n",t, num_1, buf[t]);
-						t++;
-					}
-					else if(past_num_1==0&&num_1!=0&&num_1 == BH && t == PW_LEN){
-						t = 0;
-						if (pwcmp(pw, buf)==1){
-							fail=0;
-							lcd_dooropen(disp1);
-							door_open(mute);//문열림
-							
-							break;
-						}
-						else{
-							fail++;
-							lcd_fail(disp1, fail);
-							pw_fail(fail, mute);//틀린경우 fail카운터 증가
-							if(fail>=FAIL_CNT) break;
-						}
-					}
-					past_num_1= num_1;
-				}
-			}
-            else if (key == B2) { //2번 메뉴는 비밀번호 초기화
+        tok = 0;
+        
+        // 키가 눌렸다 떼지는 순간 동작
+        if (key != 0 && past_key == 0) { 
+            if (key != B4) btnsound(mute);
+            if (key == BS) {
+                lcd_stat++; // 별 버튼은 아래로 스크롤
+            }
+            if (key == B1) { // 1번 메뉴는 PW 입력 모드
+                t = 0;
+                printf("\n(1)Input PW:\n");
+                while (1) {
+                    lcd_inputpw(disp1, t);
+                    int num_1 = KeypadRead();
+                    // 숫자 버튼이 인식된 경우
+                    if (past_num_1 == 0 && num_1 != 0 && num_1 != BS && t < PW_LEN) {
+                        btnsound(mute);
+                        buf[t] = num_1;
+                        printf("\nt:%d key:(%d) b:[%d]\n", t, num_1, buf[t]);
+                        t++;
+                    }
+                    // 해시 버튼이 인식된 경우
+                    else if (past_num_1 == 0 && num_1 != 0 && num_1 == BH && t == PW_LEN) {
+                        t = 0;
+                        if (pwcmp(pw, buf) == 1) {
+                            fail = 0;
+                            lcd_dooropen(disp1);
+                            door_open(mute); // 문이 열림
+                            break;
+                        }
+                        else {
+                            fail++;
+                            lcd_fail(disp1, fail);
+                            pw_fail(fail, mute); // 틀린 경우 fail 카운터 증가
+                            if (fail >= FAIL_CNT) break;
+                        }
+                    }
+                    past_num_1 = num_1;
+                }
+            }
+            else if (key == B2) { // 2번 메뉴는 비밀번호 초기화
                 memset(pw, 0, PW_LEN * sizeof(int)); // 비밀번호 0으로 초기화
                 printf("\nInput new password >> \n");
-                while (1) { // 새로운 비밀번호를 입력받을 반복문
+                while (1) {
                     int num_2 = KeypadRead();
-					lcd_setpw(disp1, t);
-                    if (num_2 == BH && past_num_2 == 0 && t != PW_LEN) { // 비밀번호 4자리 입력X
-                        btnsound(mute);
-                        lcd_fail(disp1, fail);
-                        printf("\nInvalid PW\n");
-                                           
-                        t = 0;
-                    }				
-					
-                    if (num_2 == BH && past_num_2 == 0 && t == PW_LEN) { // 비밀번호 4자리 입력이 완료된 경우
+                    lcd_setpw(disp1, t);
+                    // 해시 버튼이 인식된 경우
+                    if (num_2 == BH && past_num_2 == 0 && t == PW_LEN) {
                         btnsound(mute);
                         lcd_done(disp1);
                         printf("\nPassword setup complete\n");
-                        printint(pw); // 입력한 비밀번호를 출력해줌
-                        
+                        printint(pw); // 입력한 비밀번호를 출력
                         t = 0;
                         break;
                     }
-                    if (num_2 != 0 && past_num_2 == 0 && num_2 != BS && num_2 != BH && t < PW_LEN) { // 숫자버튼이 인식되는 순간
+                    // 숫자 버튼이 인식된 경우
+                    if (num_2 != 0 && past_num_2 == 0 && num_2 != BS && t < PW_LEN) {
                         btnsound(mute);
-                        
                         pw[t] = num_2;
-                        
-                        printf("\nt:%d num:(%d) pw:[%d]\n",t, num_2, pw[t]); // 디버그용
+                        printf("\nt:%d num:(%d) pw:[%d]\n", t, num_2, pw[t]);
                         t++;
                     }
                     past_num_2 = num_2;
                 }
             }
-            else if (key==B3){
-				t=0;
-				
-				printf("\n(3)Change password >> \nAs is:\n");
-				while(tok!=2){
-					int num_3 = KeypadRead();
-					lcd_changepw(disp1, t, 0);
-					if(past_num_3==0&&num_3!=0&&t<PW_LEN&&num_3!=BS&&num_3!=BH)//숫자버튼일경우
-					{
-						btnsound(mute);
-               
+            else if (key == B3) { // 3번 메뉴는 비밀번호 변경
+                t = 0;
+                printf("\n(3)Change password >> \nAs is:\n");
+                while (tok != 2) {
+                    int num_3 = KeypadRead();
+                    lcd_changepw(disp1, t, 0);
+                    // 숫자 버튼이 인식된 경우
+                    if (past_num_3 == 0 && num_3 != 0 && t < PW_LEN && num_3 != BS && num_3 != BH) {
+                        btnsound(mute);
                         buf[t] = num_3;
-                        printf("\n*\n"); // 디버그용
+                        printf("\n*\n");
                         t++;
-					}
-					else if(t==4){
-						int j=0;
-						t++;
-						if(pwcmp(pw, buf)==1) tok = 1;
-						else tok=0;
-						//memset(buf, 0, PW_LEN * sizeof(int));
-						printf("%d", tok);
-						
-						printf("\nTo be\n");
-						while(1){
-							lcd_tobe(disp1, 4, j);
-							int num_4 = KeypadRead();
-							if(past_num_4==0&&num_4!=0&&j<PW_LEN&&num_4!=BS&&num_4!=BH){
-								btnsound(mute);
-					   
-								buf[j] = num_4;
-								printf("\n*\n"); // 디버그용
-								j++;
-							}
-							else if(j>=4&&tok==1){
-								for(int i=0;i<PW_LEN;i++){
-									pw[i]=buf[i];
-								}
-								lcd_done(disp1);
-								printf("\nDone\n");
-								tok=2;
-								printf("%d", tok);
-								printint(pw);
-								break;
-							}
-							else if(j>=4&&tok==0){
-								lcd_fail(disp1, fail);
-								printf("\nInvalid PW\n");
-								tok=2;
-								printf("%d", tok);
-								delay(2000);
-								break;
-							}
-							
-							past_num_4 = num_4;
-						}
-						
-					}
-					past_num_3=num_3;
-				}
-			}
-			else if(key==B4){//음소거 버튼
-				lcd_sound(disp1, mute);
-				mute = !mute;
-				if(mute){
-					printf("\nSound off\n");
-				}
-				else{
-					printf("\nSound on\n");
-				}
-				btnsound(mute);
-			}
+                    }
+                    // 4자리 입력이 완료된 경우
+                    else if (t == 4) {
+                        int j = 0;
+                        t++;
+                        if (pwcmp(pw, buf) == 1) 
+                            tok = 1;
+                        else 
+                            tok = 0;
+                        printf("%d", tok);
+                        
+                        printf("\nTo be\n");
+                        while (1) {
+                            lcd_tobe(disp1, 4, j);
+                            int num_4 = KeypadRead();
+                            // 숫자 버튼이 인식된 경우
+                            if (past_num_4 == 0 && num_4 != 0 && j < PW_LEN && num_4 != BS && num_4 != BH) {
+                                btnsound(mute);
+                                buf[j] = num_4;
+                                printf("\n*\n");
+                                j++;
+                            }
+                            // 변경 완료
+                            else if (j >= 4 && tok == 1) {
+                                for (int i = 0; i < PW_LEN; i++) {
+                                    pw[i] = buf[i];
+                                }
+                                lcd_done(disp1);
+                                printf("\nDone\n");
+                                tok = 2;
+                                printf("%d", tok);
+                                printint(pw);
+                                break;
+                            }
+                            // 변경 실패
+                            else if (j >= 4 && tok == 0) {
+                                lcd_fail(disp1, fail);
+                                printf("\nInvalid PW\n");
+                                tok = 2;
+                                printf("%d", tok);
+                                delay(2000);
+                                break;
+                            }
+                            past_num_4 = num_4;
+                        }
+                    }
+                    past_num_3 = num_3;
+                }
+            }
+            else if (key == B4) { // 음소거 버튼
+                lcd_sound(disp1, mute);
+                mute = !mute;
+                if (mute) {
+                    printf("\nSound off\n");
+                }
+                else {
+                    printf("\nSound on\n");
+                }
+                btnsound(mute);
+            }
         }
-        
         
         past_key = key;
     }
